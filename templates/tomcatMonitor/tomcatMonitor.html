@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>TomcatMonitor</title>
+    <!-- 引入 ECharts 文件 -->
+    <script src="/static/js/echarts/echarts.js"></script>
+    <script src="/static/js/jquery.min.js"></script>
+</head>
+<body>
+I am tomcat Monitor
+<!-- 为 ECharts 准备一个具备大小（宽高）的 DOM -->
+    <div id="echarts" style="width: 600px;height:400px;"></div>
+</body>
+<script type="text/javascript">
+        // 基于准备好的dom，初始化echarts实例
+        var myChart = echarts.init(document.getElementById('echarts'));
+        // 指定图表的配置项和数据
+        data_value = {{ data_value|safe }};
+        data_x = {{ data_x|safe}};
+        option = {
+            title: {
+                text: 'Tomcat内存使用(MB)',
+                subtext: '纯属虚构'
+            },
+            toolbox: {
+                show: true,
+                feature: {
+                    dataZoom: {
+                        yAxisIndex: 'none'
+                    },
+                    dataView: {readOnly: false},
+                    magicType: {type: ['line', 'bar']},
+                    restore: {},
+                    saveAsImage: {}
+                }
+            },
+            tooltip: {
+                trigger: 'axis',
+                formatter: function (params) {
+                    if ($.isArray(params)) {
+                        return params[0].name + '</br>' + params[0].seriesName + ' : ' + params[0].value + 'MB';
+                    }else{
+                        return params.name + ' : ' + params.value + 'MB';
+                    }
+                },
+                axisPointer: {
+                    animation: false
+                }
+            },
+            xAxis: {
+                type: 'category',
+                boundaryGap: false,
+                splitLine: {
+                    show: false
+                },
+                data:data_x
+
+            },
+            yAxis: {
+                type: 'value',
+                boundaryGap: [0, '100%'],
+                splitLine: {
+                    show: false
+                },
+                axisLabel: {
+                    formatter: '{value} MB'
+                }
+            },
+            series: [{
+                name: '内存使用',
+                type: 'line',
+                showSymbol: false,
+                hoverAnimation: false,
+                markPoint: {
+                data: [
+                    {type: 'max', name: '最大值'},
+                    {type: 'min', name: '最小值'}
+                    ]
+                },
+                markLine: {
+                    data: [
+                        {type: 'average', name: '平均值'}
+                    ]
+                },
+                data: data_value
+            }]
+        };
+        // 使用刚指定的配置项和数据显示图表。
+        myChart.setOption(option);
+
+        //动态更新数据显示图表
+        var app = {};
+        app.timeTicket = setInterval(function () {
+            $.ajax({
+                url:"/tomcatMonitor/get",
+                dataType: 'json',
+                success:function (res) {
+                    //执行更新图表操作
+                    myChart.setOption({
+                        xAxis: {
+                            data:res.data_x
+                        },
+                        series: [{
+                            data: res.data_value
+                        }]
+                    });
+                }
+
+            })
+        }, 1000*30);
+
+
+    </script>
+</html>
